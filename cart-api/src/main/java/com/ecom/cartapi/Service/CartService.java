@@ -1,14 +1,16 @@
 package com.ecom.cartapi.Service;
 
 import com.ecom.cartapi.Builder.CartBuilder;
-import com.ecom.cartapi.DTO.ProductQuantity;
+import com.ecom.cartapi.DTO.InventoryRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 @Service
 public class CartService {
@@ -16,54 +18,25 @@ public class CartService {
 
     @Autowired
     RestTemplate restTemplate;
-//    @Autowired
-//    Gson gson;
+
     @Autowired
-CartBuilder cartBuilder;
-
-//    @Value("${PRODUCTS_API_URL}")
-//    private String inventoryUrl;
-//    public ResponseEntity<?> addToCart(String userId, String productQuantityJson) {
-//
-//        Map<String, Integer> proQt = gson.fromJson(productQuantityJson, Map.class);
-//        Map<String, Integer> counter = null;
-//        HttpHeaders headers = new HttpHeaders();
-//        headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
-//        HttpEntity<?> entity = new HttpEntity<>(productQuantityJson, headers);
-//        List<ProductQuantity> productQuantities = restTemplate.exchange(inventoryUrl, HttpMethod.GET, entity, List.class).getBody();
-//
-//        productQuantities.forEach(productQuantity -> {
-//            if (productQuantity.getIsPresentInInventory())
-//                cart.addProductToCart(productQuantity, userId);
-//            else counter.put(productQuantity.getProductId(), productQuantity.getAvailableQuantity());} );
-//
-//        if (counter.isEmpty()){
-//            return new ResponseEntity<>("All Products Successfully added to the Cart", HttpStatus.OK);
-//        }
-//        else {
-//            counter.forEach();
-//            return new ResponseEntity<>(String.valueOf(counter), HttpStatus.MULTI_STATUS);
-//        }
-//    }
-
+    CartBuilder cartBuilder;
 
     @Value("${PRODUCTS_API_URL}")
     private String inventoryUrl;
-    public ResponseEntity<?> addToCart(String userId, String productId, Integer quantity) {
+    public ResponseEntity<?> addToCart(Long userId, InventoryRequest inventoryRequest) {
 
         HttpHeaders headers = new HttpHeaders();
         headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
-        headers.set("productId", productId);
-        headers.set("quantity", String.valueOf(quantity));
-        HttpEntity<?> entity = new HttpEntity<>(headers);
-        ProductQuantity productQuantity = restTemplate.exchange(inventoryUrl, HttpMethod.GET, entity, ProductQuantity.class).getBody();
+        HttpEntity<?> entity = new HttpEntity<>(inventoryRequest, headers);
+        InventoryRequest IR = restTemplate.exchange(inventoryUrl, HttpMethod.GET, entity, InventoryRequest.class).getBody();
 
-        if (productQuantity.getAvailableQuantity() >= quantity){
-            cartBuilder.addProductToCart(productQuantity, userId, quantity);
-            return new ResponseEntity<>("Product Succesfully added to your cart", HttpStatus.OK);
+        if (IR.getQuantity() >= inventoryRequest.getQuantity()){
+            cartBuilder.addProductToCart(userId,inventoryRequest);
+            return new ResponseEntity<>("Product successfully added to cart",HttpStatus.OK);
         }
         else {
-            return new ResponseEntity<String>("Only " + productQuantity.getAvailableQuantity() + " items available in Inventory", HttpStatus.OK);
+            return new ResponseEntity<>("Only" + IR.getQuantity() +" items left in Inventory", HttpStatus.NOT_FOUND);
         }
     }
 

@@ -1,5 +1,6 @@
 package com.ecom.cartapi.Controller;
 
+import com.ecom.cartapi.DTO.InventoryRequest;
 import com.ecom.cartapi.Service.CartService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -14,8 +15,8 @@ public class CartController {
     CartService cartService;
 
     @PostMapping("/addToCart")
-    public ResponseEntity<?> addToCart(@RequestHeader String userId, @RequestHeader String productId, @RequestHeader Integer quantity){
-        return cartService.addToCart(userId, productId, quantity);
+    public ResponseEntity<?> addToCart(@RequestHeader String userId, @RequestBody InventoryRequest inventoryRequest){
+        return cartService.addToCart(userId, inventoryRequest);
     }
 
 //    @DeleteMapping("/placeOrder")

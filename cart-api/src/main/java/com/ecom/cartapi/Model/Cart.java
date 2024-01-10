@@ -1,6 +1,7 @@
 package com.ecom.cartapi.Model;
 
 
+import com.ecom.cartapi.DTO.InventoryRequest;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -20,10 +21,10 @@ import java.util.*;
 public class Cart {
 
     @Id
-    private String cartId;
-    private String userId;
-    @OneToMany(cascade = CascadeType.ALL)
-    private List<Product> products;
-    private Integer quantity;
+    private Long cartId;
+    private Long userId;
+    @ElementCollection
+    private List<InventoryRequest> ProductQuantity;
+
 
 }

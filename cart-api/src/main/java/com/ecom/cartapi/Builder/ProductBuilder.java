@@ -1,6 +1,5 @@
 package com.ecom.cartapi.Builder;
 
-import com.ecom.cartapi.DTO.ProductQuantity;
 import com.ecom.cartapi.Model.Product;
 import lombok.Builder;
 import lombok.Data;
