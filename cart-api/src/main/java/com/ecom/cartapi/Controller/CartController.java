@@ -15,7 +15,7 @@ public class CartController {
     CartService cartService;
 
     @PostMapping("/addToCart")
-    public ResponseEntity<?> addToCart(@RequestHeader String userId, @RequestBody InventoryRequest inventoryRequest){
+    public ResponseEntity<?> addToCart(@RequestHeader Long userId, @RequestBody InventoryRequest inventoryRequest){
         return cartService.addToCart(userId, inventoryRequest);
     }
 
