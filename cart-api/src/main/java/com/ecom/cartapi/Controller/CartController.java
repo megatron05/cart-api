@@ -19,8 +19,8 @@ public class CartController {
         return cartService.addToCart(userId, inventoryRequest);
     }
 
-//    @DeleteMapping("/placeOrder")
-//    public ResponseEntity<?> placeOrder (@RequestHeader String cartId){
-//        return cartService.placeOrder(cartId);
-//    }
+    @GetMapping("/placeOrder/{cartId}")
+    public ResponseEntity<?> placeOrder(@PathVariable Long cartId){
+        return cartService.placeOrder(cartId);
+    }
 }

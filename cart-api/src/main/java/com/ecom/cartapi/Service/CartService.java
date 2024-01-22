@@ -1,13 +1,18 @@
 package com.ecom.cartapi.Service;
 
 import com.ecom.cartapi.Builder.CartBuilder;
+import com.ecom.cartapi.DAO.CartRepo;
 import com.ecom.cartapi.DTO.InventoryRequest;
+import com.ecom.cartapi.DTO.InventoryResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.reactive.function.client.WebClient;
+
 import java.util.Arrays;
+import java.util.List;
 
 @Service
 public class CartService {
@@ -18,6 +23,12 @@ public class CartService {
 
     @Autowired
     CartBuilder cartBuilder;
+
+    @Autowired
+    WebClient.Builder webClientBuilder;
+
+    @Autowired
+    CartRepo cartRepo;
 
     @Value("${PRODUCTS_API_URL}")
     private String inventoryUrl;
@@ -37,29 +48,26 @@ public class CartService {
         }
     }
 
-//    @Value("${TRANSACTIONS_API_URL}")
-//    private String transactionsUrl;
-//    @Value("${INVENTORY_REMOVE_API}")
-//    private String inventoryRemoveUrl;
+    public ResponseEntity<?> placeOrder(Long cartId) {
+        List<InventoryRequest> inventoryRequests = (cartRepo.findById(cartId).get()).getProductQuantity();
 
+        InventoryResponse[] inventoryResponseArray = webClientBuilder.build().post()
+                .uri("http://localhost:8083/inventory/check")
+                .bodyValue(inventoryRequests)
+                .retrieve()
+                .bodyToMono(InventoryResponse[].class)
+                .block();
+        boolean allProductsInStock = Arrays.stream(inventoryResponseArray)
+                .allMatch(inventoryResponse -> inventoryResponse.getIsInStock());
 
-//    public ResponseEntity<?> placeOrder(String cartId) {
-//        Cart cart = cartRepo.findById(cartId).get();
-//        Product product = cart.getProduct();
-//        HttpHeaders headers = new HttpHeaders();
-//        headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
-//        headers.set("productId", product.getProductId());
-//        headers.set("quantity", Integer.toString(cart.getProductQuantity()));
-//        HttpEntity<String> inventoryRemoveEntity = new HttpEntity<>(headers);
-//        Product product1 = restTemplate.exchange(inventoryUrl, HttpMethod.GET, inventoryRemoveEntity, Product.class).getBody();
-//
-//        assert product1 != null;
-//        if (product1.getIsPresentInInventory() == Boolean.FALSE) {
-//            return new ResponseEntity<>("Product is not available in Inventory", HttpStatus.NOT_FOUND);
-//        }
-//
-//        HttpEntity<Cart> addToTransactionEntity = new HttpEntity<>(cart);
-//        return new ResponseEntity<>(restTemplate.exchange(transactionsUrl, HttpMethod.POST, addToTransactionEntity, Boolean.class).getStatusCode());
-//
-//    }
+        if (allProductsInStock){
+            // need to call transactions API / Payments API
+            return new ResponseEntity<>("All products are in Stock", HttpStatus.OK);
+        }
+        else {
+            return new ResponseEntity<>(inventoryResponseArray, HttpStatus.CONFLICT);
+        }
+
+    }
+
 }
