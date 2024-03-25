@@ -1,13 +1,21 @@
 package com.ecom.cartapi.Service;
 
 import com.ecom.cartapi.Builder.CartBuilder;
+import com.ecom.cartapi.DAO.CartObjectRepo;
+import com.ecom.cartapi.DAO.CartRepo;
+import com.ecom.cartapi.Model.Cart;
+import com.ecom.cartapi.Model.CartObject;
 import com.ecom.cartapi.DTO.InventoryRequest;
+import com.ecom.cartapi.DTO.InventoryResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
-import java.util.Arrays;
+import org.springframework.web.reactive.function.client.WebClient;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @Service
 public class CartService {
@@ -15,26 +23,57 @@ public class CartService {
 
     @Autowired
     RestTemplate restTemplate;
-
+    @Autowired
+    WebClient webClient;
+    @Autowired
+    CartObjectRepo cartObjectRepo;
     @Autowired
     CartBuilder cartBuilder;
+    @Autowired
+    CartRepo cartRepo;
 
     @Value("${PRODUCTS_API_URL}")
     private String inventoryUrl;
     public ResponseEntity<?> addToCart(Long userId, InventoryRequest inventoryRequest) {
 
-        HttpHeaders headers = new HttpHeaders();
-        headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
-        HttpEntity<?> entity = new HttpEntity<>(inventoryRequest, headers);
-        InventoryRequest IR = restTemplate.exchange(inventoryUrl, HttpMethod.GET, entity, InventoryRequest.class).getBody();
+        List<InventoryRequest> inventoryRequests = new ArrayList<>();
+        inventoryRequests.add(inventoryRequest);
 
-        if (IR.getQuantity() >= inventoryRequest.getQuantity()){
-            cartBuilder.addProductToCart(userId,inventoryRequest);
+        List<InventoryResponse> response = webClient.post()
+                .uri(inventoryUrl)
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(inventoryRequests)
+                .retrieve()
+                .bodyToFlux(InventoryResponse.class)
+                .collectList()
+                .block();
+
+        System.out.println(response);
+        if (response.get(0).getExistingQuantity() >= inventoryRequest.getQuantity()){
+
+            CartObject cartObject = new CartObject();
+
+            if (cartObjectRepo.findByProductId(inventoryRequest.getProductId()).isPresent()){
+                cartObject = cartObjectRepo.findByProductId(inventoryRequest.getProductId()).get();
+                cartObject.setQuantity(inventoryRequest.getQuantity());
+            } else {
+                cartObject.setProductId(inventoryRequest.getProductId());
+                cartObject.setQuantity(inventoryRequest.getQuantity());
+                cartObjectRepo.save(cartObject);
+            }
+
+            cartBuilder.addProductToCart(userId,cartObject);
             return new ResponseEntity<>("Product successfully added to cart",HttpStatus.OK);
         }
         else {
-            return new ResponseEntity<>("Only" + IR.getQuantity() +" items left in Inventory", HttpStatus.NOT_FOUND);
+            return new ResponseEntity<>("Only" +response.get(0).getExistingQuantity() +" items left in Inventory", HttpStatus.NOT_FOUND);
         }
+    }
+
+    public ResponseEntity<?> getCartObjects(Long userId) {
+        Cart cart = cartBuilder.findUserCart(userId);
+        cartRepo.save(cart);
+        return new ResponseEntity<>(cart, HttpStatus.OK);
     }
 
 //    @Value("${TRANSACTIONS_API_URL}")

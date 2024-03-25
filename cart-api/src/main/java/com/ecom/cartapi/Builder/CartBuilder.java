@@ -2,7 +2,7 @@ package com.ecom.cartapi.Builder;
 
 
 import com.ecom.cartapi.DAO.CartRepo;
-import com.ecom.cartapi.DTO.InventoryRequest;
+import com.ecom.cartapi.Model.CartObject;
 import com.ecom.cartapi.Model.Cart;
 import lombok.Data;
 import lombok.Getter;
@@ -12,6 +12,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 @Data
 @Setter@Getter
@@ -21,20 +22,30 @@ public class CartBuilder {
     @Autowired
     CartRepo cartRepo;
 
-    public void addProductToCart(Long userId, InventoryRequest inventoryRequest){
-        final Cart cart;
+    public Cart findUserCart(Long userId){
         if (cartRepo.findByUserId(userId).isEmpty()){
-            cart = Cart.builder()
+            return Cart.builder()
                     .cartId(userId)
                     .userId(userId)
                     .ProductQuantity(new ArrayList<>())
                     .build();
+        }else{
+            return cartRepo.findByUserId(userId).get();
         }
-        else{
-            cart = cartRepo.findByUserId(userId).get();
+    }
+    public void addProductToCart(Long userId, CartObject cartObject){
+        Cart cart = findUserCart(userId);
+        List<CartObject> ir = cart.getProductQuantity();
+        Optional<CartObject> existingRequest = ir.stream()
+                .filter(request -> request.getProductId().equals(cartObject.getProductId()))
+                .findFirst();
+
+        if (existingRequest.isPresent()) {
+            CartObject existing = existingRequest.get();
+            existing.setQuantity(cartObject.getQuantity());
+        } else {
+            ir.add(cartObject);
         }
-        List<InventoryRequest> ir = cart.getProductQuantity();
-        ir.forEach(invRq1 -> invRq1.setQuantity(invRq1.getProductId() == inventoryRequest.getProductId() ? invRq1.getQuantity()+inventoryRequest.getQuantity(): inventoryRequest.getQuantity()));
         cart.setProductQuantity(ir);
         cartRepo.save(cart);
     }

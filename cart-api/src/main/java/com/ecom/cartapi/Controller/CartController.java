@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/cart")
+@CrossOrigin
 public class CartController {
 
     @Autowired
@@ -17,6 +18,11 @@ public class CartController {
     @PostMapping("/addToCart")
     public ResponseEntity<?> addToCart(@RequestHeader Long userId, @RequestBody InventoryRequest inventoryRequest){
         return cartService.addToCart(userId, inventoryRequest);
+    }
+
+    @GetMapping("/getCart")
+    public ResponseEntity<?> getCart(@RequestHeader Long userId){
+        return cartService.getCartObjects(userId);
     }
 
 //    @DeleteMapping("/placeOrder")
