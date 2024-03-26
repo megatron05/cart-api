@@ -16,6 +16,7 @@ import org.springframework.web.reactive.function.client.WebClient;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 public class CartService {
@@ -73,6 +74,21 @@ public class CartService {
     public ResponseEntity<?> getCartObjects(Long userId) {
         Cart cart = cartBuilder.findUserCart(userId);
         cartRepo.save(cart);
+        return new ResponseEntity<>(cart, HttpStatus.OK);
+    }
+
+    public ResponseEntity<?> removeItem(Long userId, ArrayList<Long> productIds) {
+
+        Cart cart = cartBuilder.findUserCart(userId);
+        List<CartObject> productsList = cart.getProductQuantity();
+        productIds.forEach(productId -> {
+        Optional<CartObject> product = productsList.stream()
+                .filter(request -> request.getProductId().equals(productId))
+                .findFirst();
+        if (product.isPresent()) {
+            productsList.remove(product.get());
+            cartObjectRepo.delete(product.get());
+        }});
         return new ResponseEntity<>(cart, HttpStatus.OK);
     }
 
